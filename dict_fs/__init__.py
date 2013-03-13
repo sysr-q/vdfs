@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 import pprint
+import re
 
 FS_BLOB = "__DICT_FS_BLOB__"
 FS_FILE = "__DICT_FS_FILE__"
@@ -14,20 +16,11 @@ CODES = {
 
 
 class dict_fs(object):
-    def __init__(self, fs=None, env=None):
+    def __init__(self, fs=None):
         if fs:
             self.fs = fs
         else:
             self.fs = {}
-
-        if env:
-            self.env = env
-        else:
-            self.env = {
-                "PATH": "/usr/sbin:/sbin:/usr/local/bin:/usr/bin:/bin",
-                "SHELL": "/bin/sh",
-                "LANG": "C"
-            }
 
         self.current_dir = []
 
@@ -43,7 +36,7 @@ class dict_fs(object):
     def list_dir(self, dir_name=None):
         dir_list = []
         dir_list.append("Contents of directory: " +  self.root_name + (self.sep.join(self.current_dir)) + ":")
-        dir_list.extend([i for i in self.current_dictionary()])
+        dir_list.extend(sorted([i for i in self.current_dictionary()]))
         return dir_list
 
     def is_root_dir(self):
@@ -58,8 +51,8 @@ class dict_fs(object):
                 return 2#CODE
             else:
                 self.current_dir.pop()
-            return True
-        elif dir_name not in self.current_dictionary():
+            return 0
+        elif not self.exists(dir_name):
             return 3#CODE
         
         # The thing we're interested in "cd"ing into.
@@ -71,69 +64,20 @@ class dict_fs(object):
         else:
             return 4#CODE
 
+    def exists(self, name):
+        return name in self.current_dictionary()
+
     def make_dir(self, dir_name):
+        if self.exists(dir_name):
+            return False
         self.current_dictionary()[dir_name] = {}
         return True
 
     def touch(self, filename, contents=None):
+        if self.exists(filename):
+            return False
+
         if not contents:
             contents = ""
         self.current_dictionary()[filename] = contents
         return True
-
-    def print_debug_info(self, args):
-        print "self.fs:"
-        print pprint.pprint(self.fs)
-        print "self.current_dictionary():"
-        print self.current_dictionary()
-        print "self.current_dir:"
-        print self.current_dir
-
-# Semi-implemented Debian-like FS dictionary.
-pre_fs = {
-    "": {
-        "bin": {
-            "sh": FS_BLOB,
-            "cp": FS_BLOB
-        },
-        "dev": {
-            "sda": FS_BLOB,
-            "sda1": FS_BLOB
-        },
-        "etc": {
-            "hosts": "\n".join([
-                    "127.0.0.1 localhost",
-                    "::1 ip6-localhost"
-                ])
-        },
-        "home": {
-            "user": {"docs": {}, "git": {}}
-        },
-        "sys": {},
-        "tmp": {},
-        "usr": {},
-        "var": {}
-    }
-}
-
-if __name__ == "__main__":
-    # Really bad examples of use.
-    
-    fs = dict_fs(fs=pre_fs)
-    for f in fs.list_dir():
-        print f
-
-    print "-"*50
-    fs.change_dir("bin")
-    for f in fs.list_dir():
-        print f
-    cd = fs.change_dir("cp") # A file
-    print CODES[cd]
-
-    fs.make_dir("test")
-    fs.change_dir("test")
-
-    print "-"*50
-    fs.touch("example.txt")
-    for f in fs.list_dir():
-        print f
