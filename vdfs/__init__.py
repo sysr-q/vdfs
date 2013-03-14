@@ -40,13 +40,39 @@ class ParentWithChild(DictFsBase):
             This will be represented by an object
             without a parent; either the Filesystem or
             whatever object owns this without a parent.
+
+            If there is no parent, return this object.
         """
         p = self._parent
         if p is None:
-            return None
+            return self
         while p._parent is not None:
             p = p._parent
         return p
+
+    @property
+    def path(self):
+        """ Recurses back up the chain, creating a
+            back to front list of parents up to the root.
+
+            Reverse the list, join it with some seperators
+            and you're good to go!
+        """
+        root = self.root_filesystem
+        sep = root.seperator
+        path = []
+        if root is not self:
+            # If we're not the root, we should
+            # append our name to the list.
+            path.append(self._name)
+        p = self._parent
+        if p is None:
+            return sep + sep.join(path[::-1])
+
+        while p._parent is not None:
+            path.append(p._name)
+            p = p._parent
+        return sep + sep.join(path[::-1])
 
     def child(self, name):
         if name in self._children:
@@ -110,6 +136,7 @@ class Filesystem(ParentWithChild):
         self._name = "root"
         # The root has no parent.
         self._parent = None
+        self.seperator = "/"
 
     @staticmethod
     def from_dict(self, d):
@@ -143,3 +170,12 @@ class File(ParentChildPermissions):
 
     def children(self):
         raise NotAllowedChildren("Files are unable to store children")
+
+def debug_filesystem():
+    fs = Filesystem()
+    fs.give_child(Directory(name="System"))
+    fs.child('System').give_child(File(name="test"))
+    fs.give_child(Directory(name="Users"))
+    fs.child('Users').give_child(Directory(name="Anon"))
+    fs.child('Users').child('Anon').give_child(File(name="work"))
+    return fs
