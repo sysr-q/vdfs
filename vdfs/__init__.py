@@ -37,7 +37,7 @@ class ParentWithChild(DictFsBase):
         of "children" objects.
     """
     def __init__(self, name=None, parent=None, children=None):
-        self._name = name
+        self.name = name
         self._parent = parent
         self._children = children or {}
 
@@ -72,13 +72,13 @@ class ParentWithChild(DictFsBase):
         if root is not self:
             # If we're not the root, we should
             # append our name to the list.
-            path.append(self._name)
+            path.append(self.name)
         p = self._parent
         if p is None:
             return sep + sep.join(path[::-1])
 
         while p._parent is not None:
-            path.append(p._name)
+            path.append(p.name)
             p = p._parent
         return sep + sep.join(path[::-1])
 
@@ -88,10 +88,10 @@ class ParentWithChild(DictFsBase):
         raise NoSuchChild("No such child named: {0}".format(name))
 
     def give_child(self, child):
-        if child._name in self._children:
+        if child.name in self._children:
             raise ChildAlreadyPresent("This parent already has a child named: {0}".format(child._name))
         child._parent = self
-        self._children[child._name] = child
+        self._children[child.name] = child
 
     def take_child(self, child_name):
         if child_name not in self._children:
@@ -111,7 +111,7 @@ class ParentWithChild(DictFsBase):
     def __repr__(self):
         return "<{cls}#{name}, children: {children}>".format(
             cls=self.__class__.__name__,
-            name=self._name,
+            name=self.name,
             children=len(self.children())
         )
 
@@ -139,7 +139,7 @@ class ParentChildPermissions(ParentWithChild):
     def __repr__(self):
         return "<{cls}#{name}, children: {children}, {perms}>".format(
             cls=self.__class__.__name__,
-            name=self._name,
+            name=self.name,
             # "None" or number of children.
             children=len(self.children()) if self._children is not None else None,
             perms=self.perms
@@ -153,7 +153,7 @@ class Filesystem(ParentWithChild):
     """
     def __init__(self, **kwargs):
         super(Filesystem, self).__init__(**kwargs)
-        self._name = "root"
+        self.name = "root"
         # The root has no parent.
         self._parent = None
         self.seperator = "/"
