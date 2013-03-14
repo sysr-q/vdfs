@@ -23,6 +23,14 @@ class DictFsBase(object):
     def __init__(self, name=None):
         self._name = name
 
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = val
+
 class ParentWithChild(DictFsBase):
     """ An abstracted class which provides a
         "parent" object, as well as a dictionary
@@ -84,6 +92,18 @@ class ParentWithChild(DictFsBase):
             raise ChildAlreadyPresent("This parent already has a child named: {0}".format(child._name))
         child._parent = self
         self._children[child._name] = child
+
+    def take_child(self, child_name):
+        if child_name not in self._children:
+            raise NoSuchChild("No such child named: {0}".format(child_name))
+        return self._children.pop(child_name)
+
+    def move_child(self, from_, to):
+        if from_ not in self._children:
+            raise NoSuchChild("No such child named: {0}".format(from_))
+        child = self.take_child(from_)
+        child.name = to
+        self.give_child(child)
 
     def children(self):
         return self._children
@@ -172,10 +192,15 @@ class File(ParentChildPermissions):
         raise NotAllowedChildren("Files are unable to store children")
 
 def debug_filesystem():
+    """ Throws together a little filesystem to enable quick
+        debugging without having to manually create one.
+    """
     fs = Filesystem()
     fs.give_child(Directory(name="System"))
     fs.child('System').give_child(File(name="test"))
     fs.give_child(Directory(name="Users"))
     fs.child('Users').give_child(Directory(name="Anon"))
-    fs.child('Users').child('Anon').give_child(File(name="work"))
+    fs.child('Users').child('Anon').give_child(
+        File(name="work", data="1. Be cool.\n2. Lrn 2 hack.")
+    )
     return fs
