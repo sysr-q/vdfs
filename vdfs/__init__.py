@@ -3,18 +3,38 @@ import time
 
 
 class DictFSException(Exception):
+    """ The base exception for VDFS errors.
+        All other errors are children of this,
+        easily allowing you to blanket-catch
+        them all.
+    """
     pass
 
 class NoSuchChild(DictFSException):
+    """ You attempted to access a child which this
+        object does not parent.
+    """
     pass
 
 class NoNameGiven(DictFSException):
+    """ You didn't give the required name field to
+        this object.
+
+        Not really used, but may be implemented at a
+        later time, since it makes sense.
+    """
     pass
 
 class ChildAlreadyPresent(DictFSException):
+    """ This object already parents a child of the
+        given child's name.
+    """
     pass
 
 class NotAllowedChildren(DictFSException):
+    """ You attempted to give a child to an object
+        which isn't allowed to be a parent.
+    """
     pass
 
 #-----------------
@@ -38,11 +58,11 @@ class ParentWithChild(DictFsBase):
     """
     def __init__(self, name=None, parent=None, children=None):
         self.name = name
-        self._parent = parent
+        self.parent = parent
         self._children = children or {}
 
     @property
-    def root_filesystem(self):
+    def tree_root(self):
         """ Recurse back up the file tree, to try
             and find the "root" of this object.
             This will be represented by an object
@@ -51,11 +71,11 @@ class ParentWithChild(DictFsBase):
 
             If there is no parent, return this object.
         """
-        p = self._parent
+        p = self.parent
         if p is None:
             return self
-        while p._parent is not None:
-            p = p._parent
+        while p.parent is not None:
+            p = p.parent
         return p
 
     @property
@@ -66,20 +86,20 @@ class ParentWithChild(DictFsBase):
             Reverse the list, join it with some seperators
             and you're good to go!
         """
-        root = self.root_filesystem
+        root = self.tree_root
         sep = root.seperator
         path = []
         if root is not self:
             # If we're not the root, we should
             # append our name to the list.
             path.append(self.name)
-        p = self._parent
+        p = self.parent
         if p is None:
             return sep + sep.join(path[::-1])
 
-        while p._parent is not None:
+        while p.parent is not None:
             path.append(p.name)
-            p = p._parent
+            p = p.parent
         return sep + sep.join(path[::-1])
 
     def child(self, name):
@@ -90,7 +110,7 @@ class ParentWithChild(DictFsBase):
     def give_child(self, child):
         if child.name in self._children:
             raise ChildAlreadyPresent("This parent already has a child named: {0}".format(child._name))
-        child._parent = self
+        child.parent = self
         self._children[child.name] = child
 
     def take_child(self, child_name):
@@ -114,13 +134,6 @@ class ParentWithChild(DictFsBase):
             name=self.name,
             children=len(self.children())
         )
-
-    """ Bad hacky implementation to call fs.test instead of fs.child('test')
-    def __getattr__(self, name):
-        if name in self.__dict__['children']:
-            return self.__dict__['children'][name]
-        raise AttributeError
-    """
 
 class ParentChildPermissions(ParentWithChild):
     def __init__(self, perms=None, bit=None, uid=None, gid=None, ctime=None, size=None, **kwargs):
@@ -155,7 +168,7 @@ class Filesystem(ParentWithChild):
         super(Filesystem, self).__init__(**kwargs)
         self.name = "root"
         # The root has no parent.
-        self._parent = None
+        self.parent = None
         self.seperator = "/"
 
     @staticmethod
