@@ -11,11 +11,13 @@ class DictFSException(Exception):
     """
     pass
 
+
 class NoSuchChild(DictFSException):
     """ You attempted to access a child which this
         object does not parent.
     """
     pass
+
 
 class NoNameGiven(DictFSException):
     """ You didn't give the required name field to
@@ -26,11 +28,13 @@ class NoNameGiven(DictFSException):
     """
     pass
 
+
 class ChildAlreadyPresent(DictFSException):
     """ This object already parents a child of the
         given child's name.
     """
     pass
+
 
 class NotAllowedChildren(DictFSException):
     """ You attempted to give a child to an object
@@ -42,10 +46,12 @@ class NotAllowedChildren(DictFSException):
 
 LOOKUP = {}
 
+
 def resolve(inode):
     if inode not in LOOKUP:
         return None
     return LOOKUP[inode]
+
 
 class DictFsBase(object):
     def __init__(self, name=None, add_to_lookup=True):
@@ -56,6 +62,7 @@ class DictFsBase(object):
         self.parent = None
         if add_to_lookup:
             LOOKUP[self.inode] = self
+
 
 class ParentWithChild(DictFsBase):
     """ An abstracted class which provides a
@@ -128,7 +135,8 @@ class ParentWithChild(DictFsBase):
 
     def give_child(self, child):
         if child.inode in self.children():
-            raise ChildAlreadyPresent("This parent already has a child identified by: {0}".format(child.inode))
+            err = "This parent already has a child identified by: {0}"
+            raise ChildAlreadyPresent(err.format(child.inode))
         child.parent = self.inode
         self._children[child.inode] = child
 
@@ -148,8 +156,16 @@ class ParentWithChild(DictFsBase):
             children=len(self.children())
         )
 
+
 class ParentChildPermissions(ParentWithChild):
-    def __init__(self, perms=None, bit=None, uid=None, gid=None, ctime=None, size=None, **kwargs):
+    def __init__(self,
+                 perms=None,
+                 bit=None,
+                 uid=None,
+                 gid=None,
+                 ctime=None,
+                 size=None,
+                 **kwargs):
         super(ParentChildPermissions, self).__init__(**kwargs)
         self._perms = perms or "rw-r--r--"
         self._bit = bit or "-"
@@ -163,7 +179,8 @@ class ParentChildPermissions(ParentWithChild):
         return "{0}{1}".format(self._bit, self._perms)
 
     def __repr__(self):
-        return "<{cls}, {name} @{inode}, children: {children}, {perms}>".format(
+        r = "<{cls}, {name} @{inode}, children: {children}, {perms}>"
+        return r.format(
             cls=self.__class__.__name__,
             name=self.name,
             inode=self.inode,
@@ -171,6 +188,7 @@ class ParentChildPermissions(ParentWithChild):
             children=len(self.children()) if self._children is not None else None,
             perms=self.perms
         )
+
 
 class Filesystem(ParentWithChild):
     """ The root file system.
@@ -185,6 +203,7 @@ class Filesystem(ParentWithChild):
         self.parent = None
         self.seperator = "/"
 
+
 class Directory(ParentChildPermissions):
     """ A folder/directory object.
         Similar to the filesystem, has a
@@ -194,6 +213,7 @@ class Directory(ParentChildPermissions):
         super(Directory, self).__init__(**kwargs)
         self._perms = perms or "rwxr-xr-x"
         self._bit = "d"
+
 
 class File(ParentChildPermissions):
     """ This can represent binary data,
@@ -213,6 +233,7 @@ class File(ParentChildPermissions):
 
     def children(self):
         raise NotAllowedChildren("Files are unable to store children")
+
 
 def debug_filesystem():
     """ Throws together a little filesystem to enable quick
