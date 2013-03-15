@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
+import uuid
 
 
 class DictFSException(Exception):
@@ -39,17 +40,15 @@ class NotAllowedChildren(DictFSException):
 
 #-----------------
 
+MASTER = {}
+
 class DictFsBase(object):
     def __init__(self, name=None):
-        self._name = name
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, val):
-        self._name = val
+        self.name = name
+        # Guaranteed randomness, or your money back!
+        self.inode = uuid.uuid4().hex
+        # inode of our parental object
+        self.parent = None
 
 class ParentWithChild(DictFsBase):
     """ An abstracted class which provides a
@@ -57,8 +56,12 @@ class ParentWithChild(DictFsBase):
         of "children" objects.
     """
     def __init__(self, name=None, parent=None, children=None):
+        super(ParentWithChild, self).__init__(name=name)
         self.name = name
-        self.parent = parent
+        if isinstance(parent, DictFsBase):
+            self.parent = parent.inode
+        else:
+            self.parent = parent
         self._children = children or {}
 
     @property
@@ -71,6 +74,7 @@ class ParentWithChild(DictFsBase):
 
             If there is no parent, return this object.
         """
+        raise NotImplemented('Disfunctional until rewrite, due to inode system.')
         p = self.parent
         if p is None:
             return self
@@ -86,6 +90,8 @@ class ParentWithChild(DictFsBase):
             Reverse the list, join it with some seperators
             and you're good to go!
         """
+        raise NotImplemented('Disfunctional until rewrite, due to inode system.')
+
         root = self.tree_root
         sep = root.seperator
         path = []
@@ -102,36 +108,31 @@ class ParentWithChild(DictFsBase):
             p = p.parent
         return sep + sep.join(path[::-1])
 
-    def child(self, name):
-        if name in self._children:
-            return self._children[name]
-        raise NoSuchChild("No such child named: {0}".format(name))
+    def child(self, ident):
+        for i, c in self.children().items():
+            if c.inode == ident or c.name == ident:
+                return c
+        raise NoSuchChild("No such child identified by: {0}".format(ident))
 
     def give_child(self, child):
-        if child.name in self._children:
-            raise ChildAlreadyPresent("This parent already has a child named: {0}".format(child._name))
-        child.parent = self
-        self._children[child.name] = child
+        if child.inode in self.children():
+            raise ChildAlreadyPresent("This parent already has a child identified by: {0}".format(child.inode))
+        child.parent = self.inode
+        self._children[child.inode] = child
 
-    def take_child(self, child_name):
-        if child_name not in self._children:
-            raise NoSuchChild("No such child named: {0}".format(child_name))
-        return self._children.pop(child_name)
-
-    def move_child(self, from_, to):
-        if from_ not in self._children:
-            raise NoSuchChild("No such child named: {0}".format(from_))
-        child = self.take_child(from_)
-        child.name = to
-        self.give_child(child)
+    def take_child(self, ident):
+        if ident not in self.children():
+            raise NoSuchChild("No such child identified by: {0}".format(inode))
+        return self._children.pop(ident)
 
     def children(self):
         return self._children
 
     def __repr__(self):
-        return "<{cls}#{name}, children: {children}>".format(
+        return "<{cls}, {name} @{inode}, children: {children}>".format(
             cls=self.__class__.__name__,
             name=self.name,
+            inode=self.inode,
             children=len(self.children())
         )
 
@@ -150,11 +151,12 @@ class ParentChildPermissions(ParentWithChild):
         return "{0}{1}".format(self._bit, self._perms)
 
     def __repr__(self):
-        return "<{cls}#{name}, children: {children}, {perms}>".format(
+        return "<{cls}, {name} @{inode}, children: {children}, {perms}>".format(
             cls=self.__class__.__name__,
             name=self.name,
+            inode=self.inode,
             # "None" or number of children.
-            children=len(self.children()) if self._children is not None else None,
+            children=len(self.children()) if self.children() is not None else None,
             perms=self.perms
         )
 
@@ -170,10 +172,6 @@ class Filesystem(ParentWithChild):
         # The root has no parent.
         self.parent = None
         self.seperator = "/"
-
-    @staticmethod
-    def from_dict(self, d):
-        pass
 
 class Directory(ParentChildPermissions):
     """ A folder/directory object.
@@ -209,7 +207,8 @@ def debug_filesystem():
         debugging without having to manually create one.
     """
     fs = Filesystem()
-    fs.give_child(Directory(name="System"))
+    d = Directory(name="System")
+    fs.give_child(d)
     fs.child('System').give_child(File(name="test"))
     fs.give_child(Directory(name="Users"))
     fs.child('Users').give_child(Directory(name="Anon"))
