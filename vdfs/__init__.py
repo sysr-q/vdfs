@@ -40,15 +40,22 @@ class NotAllowedChildren(DictFSException):
 
 #-----------------
 
-MASTER = {}
+LOOKUP = {}
+
+def resolve(inode):
+    if inode not in LOOKUP:
+        return None
+    return LOOKUP[inode]
 
 class DictFsBase(object):
-    def __init__(self, name=None):
+    def __init__(self, name=None, add_to_lookup=True):
         self.name = name
         # Guaranteed randomness, or your money back!
         self.inode = uuid.uuid4().hex
         # inode of our parental object
         self.parent = None
+        if add_to_lookup:
+            LOOKUP[self.inode] = self
 
 class ParentWithChild(DictFsBase):
     """ An abstracted class which provides a
@@ -65,7 +72,7 @@ class ParentWithChild(DictFsBase):
         self._children = children or {}
 
     @property
-    def tree_root(self):
+    def tree_root(self, lookup=True):
         """ Recurse back up the file tree, to try
             and find the "root" of this object.
             This will be represented by an object
@@ -74,13 +81,16 @@ class ParentWithChild(DictFsBase):
 
             If there is no parent, return this object.
         """
-        raise NotImplemented('Disfunctional until rewrite, due to inode system.')
-        p = self.parent
-        if p is None:
+        parent = self.parent
+        if parent is None:
             return self
-        while p.parent is not None:
-            p = p.parent
-        return p
+        parobj = resolve(parent)
+        while parobj.parent is not None:
+            parent = parobj.parent
+            parobj = resolve(parent)
+        if lookup:
+            return resolve(parobj.inode)
+        return parobj.inode
 
     @property
     def path(self):
@@ -90,8 +100,6 @@ class ParentWithChild(DictFsBase):
             Reverse the list, join it with some seperators
             and you're good to go!
         """
-        raise NotImplemented('Disfunctional until rewrite, due to inode system.')
-
         root = self.tree_root
         sep = root.seperator
         path = []
@@ -99,13 +107,17 @@ class ParentWithChild(DictFsBase):
             # If we're not the root, we should
             # append our name to the list.
             path.append(self.name)
-        p = self.parent
-        if p is None:
+        parent = self.parent
+        if parent is None:
             return sep + sep.join(path[::-1])
 
-        while p.parent is not None:
-            path.append(p.name)
-            p = p.parent
+        parobj = resolve(parent)
+        while parobj.parent is not None:
+            if parobj is not root:
+                # We don't want to append the name of the FS root.
+                path.append(parobj.name)
+            parent = parobj.parent
+            parobj = resolve(parent)
         return sep + sep.join(path[::-1])
 
     def child(self, ident):
@@ -156,7 +168,7 @@ class ParentChildPermissions(ParentWithChild):
             name=self.name,
             inode=self.inode,
             # "None" or number of children.
-            children=len(self.children()) if self.children() is not None else None,
+            children=len(self.children()) if self._children is not None else None,
             perms=self.perms
         )
 
