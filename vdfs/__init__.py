@@ -132,6 +132,7 @@ class ParentWithChild(DictFsBase):
             if c.inode == ident or c.name == ident:
                 return c
         raise NoSuchChild("No such child identified by: {0}".format(ident))
+    __call__ = child
 
     def give_child(self, child):
         if child.inode in self.children():
