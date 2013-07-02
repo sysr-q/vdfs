@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import vdfs
+
 
 def create(d):
     fs = vdfs.Filesystem()
@@ -8,12 +8,13 @@ def create(d):
         fs.give_child(create_from_dict(k, v))
     return fs
 
+
 def create_from_dict(k, v):
     """ Recurses down a tree of a dictionary, and creates a
         corresponding vdfs filesystem. "The heavy lifter"
     """
-    if v is Blob:
-        return vdfs.File(name=k, data="HOLY_FUCKING_SHIT")
+    if v is "__RANDOM_DATA_HERE__":
+        return vdfs.urandom(name=k)
     if isinstance(v, basestring):
         return vdfs.File(name=k, data=v)
     if hasattr(v, "__iter__"):
@@ -22,17 +23,14 @@ def create_from_dict(k, v):
             f.give_child(create_from_dict(k1, v1))
         return f
 
-class Blob(object):
-    pass
-
 fs_debian_like = {
     "bin": {
-        "sh": Blob,
-        "cp": Blob,
+        "sh": "__RANDOM_DATA_HERE__",
+        "cp": "__RANDOM_DATA_HERE__"
     },
     "dev": {
-        "sda": Blob,
-        "sda1": Blob
+        "sda": "__RANDOM_DATA_HERE__",
+        "sda1": "__RANDOM_DATA_HERE__"
     },
     "etc": {
         "hosts": "\n".join([

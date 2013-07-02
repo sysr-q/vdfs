@@ -235,6 +235,21 @@ class File(ParentChildPermissions):
     def children(self):
         raise NotAllowedChildren("Files are unable to store children")
 
+class urandom(File):
+    """ Pretends to be /dev/urandom - sort of so you can set this
+        for binary blob-like files.
+    """
+    def __init__(self, length=1024, **kwargs):
+        super(urandom, self).__init__(**kwargs)
+        self.length = length
+        self.data = self._crud()
+
+    def _crud(self):
+        import random
+        return "".join([
+            chr(random.randint(0, 255)) for _ in xrange(self.length)
+        ])
+
 
 def debug_filesystem():
     """ Throws together a little filesystem to enable quick
