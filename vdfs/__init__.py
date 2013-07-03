@@ -182,12 +182,13 @@ class ParentChildPermissions(ParentWithChild):
 
     def __repr__(self):
         r = "<{cls}, {name} @{inode}, children: {children}, {perms}>"
+        clen = len(self.children()) if self._children is not None else None
         return r.format(
             cls=self.__class__.__name__,
             name=self.name,
             inode=self.inode,
             # "None" or number of children.
-            children=len(self.children()) if self._children is not None else None,
+            children=clen,
             perms=self.perms
         )
 
