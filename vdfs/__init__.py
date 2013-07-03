@@ -62,6 +62,7 @@ class DictFsBase(object):
         self.parent = None
         if add_to_lookup:
             LOOKUP[self.inode] = self
+        self.seperator = "/"
 
 
 class ParentWithChild(DictFsBase):
@@ -202,7 +203,6 @@ class Filesystem(ParentWithChild):
         self.name = "root"
         # The root has no parent.
         self.parent = None
-        self.seperator = "/"
 
 
 class Directory(ParentChildPermissions):
@@ -234,6 +234,7 @@ class File(ParentChildPermissions):
 
     def children(self):
         raise NotAllowedChildren("Files are unable to store children")
+
 
 class urandom(File):
     """ Pretends to be /dev/urandom - sort of so you can set this
