@@ -249,19 +249,3 @@ class urandom(File):
         return "".join([
             chr(random.randint(0, 255)) for _ in xrange(self.length)
         ])
-
-
-def debug_filesystem():
-    """ Throws together a little filesystem to enable quick
-        debugging without having to manually create one.
-    """
-    fs = Filesystem()
-    d = Directory(name="System")
-    fs.give_child(d)
-    fs.child('System').give_child(File(name="test"))
-    fs.give_child(Directory(name="Users"))
-    fs.child('Users').give_child(Directory(name="Anon"))
-    fs.child('Users').child('Anon').give_child(
-        File(name="work", data="1. Be cool.\n2. Lrn 2 hack.")
-    )
-    return fs
