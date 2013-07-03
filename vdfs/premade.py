@@ -3,6 +3,9 @@ import vdfs
 
 
 def create(d):
+    """ Recurses down a tree of a dictionary and creates a
+        corresponding vdfs filesystem.
+    """
     fs = vdfs.Filesystem()
     for k, v in d.iteritems():
         fs.give_child(create_from_dict(k, v))
@@ -11,7 +14,12 @@ def create(d):
 
 def create_from_dict(k, v):
     """ Recurses down a tree of a dictionary, and creates a
-        corresponding vdfs filesystem. "The heavy lifter"
+        corresponding vdfs filesystem. "The heavy lifter".
+
+        If a given string has a value of "__RANDOM_DATA_HERE__",
+        it will be given a class of vdfs.urandom() instead.
+        Other strings are given a class of vdfs.File, and
+        things that have a value of a dictionary get a vdfs.Directory
     """
     if v is "__RANDOM_DATA_HERE__":
         return vdfs.urandom(name=k)
